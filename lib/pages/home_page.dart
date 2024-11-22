@@ -111,7 +111,7 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
-      const CalendarWidget(), // Calendar widget
+      const CalendarWidget(),
     ];
 
     return Scaffold(
@@ -139,13 +139,22 @@ class _HomePageState extends State<HomePage> {
           Center(
             child: widgetOptions.elementAt(_selectedIndex),
           ),
+          if (_selectedIndex == 0)
+            Center(
+              child: Image.asset(
+                'assets/images.png',
+                width: 175,
+                height: 175,
+              ),
+            ),
           if (_isTextBoxVisible)
             Positioned(
               bottom: 10,
               left: -15,
               right: -15,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
