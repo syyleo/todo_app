@@ -11,24 +11,32 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isTextBoxVisible = false;
   bool _isFabVisible = true;
   int _selectedIndex = 0;
-  List<List<dynamic>> toDoList = [];
+  List<List<Object>> toDoList = []; // Explicitly defining the type
 
   @override
   void initState() {
     super.initState();
-    loadTasks();
+    WidgetsBinding.instance.addObserver(this);
+    loadAppState();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      saveAppState();
+    }
   }
 
   void checkBoxChanged(int index) {
     setState(() {
-      toDoList[index][1] = !toDoList[index][1];
-      saveTasks();
+      toDoList[index][1] = !(toDoList[index][1] as bool);
+      saveAppState();
     });
   }
 
@@ -39,7 +47,7 @@ class _HomePageState extends State<HomePage> {
         _controller.clear();
         _isTextBoxVisible = false;
         _isFabVisible = true;
-        saveTasks();
+        saveAppState();
       });
     }
   }
@@ -47,11 +55,11 @@ class _HomePageState extends State<HomePage> {
   void deleteTask(int index) {
     setState(() {
       toDoList.removeAt(index);
-      saveTasks();
+      saveAppState();
     });
   }
 
-  Future<void> loadTasks() async {
+  Future<void> loadAppState() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? tasks = prefs.getStringList('tasks');
     if (tasks != null) {
@@ -62,13 +70,26 @@ class _HomePageState extends State<HomePage> {
         }).toList();
       });
     }
+    String? currentText = prefs.getString('currentText');
+    bool? isTextBoxVisible = prefs.getBool('isTextBoxVisible');
+    setState(() {
+      _controller.text = currentText ?? '';
+      _isTextBoxVisible = isTextBoxVisible ?? false;
+      _isFabVisible = !_isTextBoxVisible;
+      if (_isTextBoxVisible) {
+        _focusNode.requestFocus();
+      } else {
+        _focusNode.unfocus();
+      }
+    });
   }
 
-  Future<void> saveTasks() async {
+  Future<void> saveAppState() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> tasks =
-        toDoList.map((task) => '${task[0]},${task[1]}').toList();
+    List<String> tasks = toDoList.map((task) => '${task[0]},${task[1]}').toList();
     await prefs.setStringList('tasks', tasks);
+    await prefs.setString('currentText', _controller.text);
+    await prefs.setBool('isTextBoxVisible', _isTextBoxVisible);
   }
 
   void toggleTextBoxVisibility() {
@@ -81,6 +102,7 @@ class _HomePageState extends State<HomePage> {
         _focusNode.unfocus();
       }
     });
+    saveAppState();
   }
 
   void _onItemTapped(int index) {
@@ -92,6 +114,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -104,8 +127,8 @@ class _HomePageState extends State<HomePage> {
         itemCount: toDoList.length,
         itemBuilder: (BuildContext context, index) {
           return TodoList(
-            taskName: toDoList[index][0],
-            taskCompleted: toDoList[index][1],
+            taskName: toDoList[index][0] as String,
+            taskCompleted: toDoList[index][1] as bool,
             onChanged: (value) => checkBoxChanged(index),
             deleteFunction: (context) => deleteTask(index),
           );
@@ -153,27 +176,34 @@ class _HomePageState extends State<HomePage> {
               left: -15,
               right: -15,
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  onSubmitted: (value) {
-                    saveNewTask();
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Type Here...',
-                    filled: true,
-                    fillColor: Colors.deepPurple,
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Colors.deepPurple),
-                      borderRadius: BorderRadius.circular(10),
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        decoration: InputDecoration(
+                          hintText: 'Type Here...',
+                          filled: true,
+                          fillColor: Colors.deepPurple,
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.deepPurple),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(color: Colors.deepPurple),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Colors.deepPurple),
-                      borderRadius: BorderRadius.circular(10),
+                    IconButton(
+                      icon: const Icon(Icons.check),
+                      color: Colors.white,
+                      onPressed: saveNewTask,
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
