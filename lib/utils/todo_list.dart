@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 class TodoList extends StatelessWidget {
-  const TodoList({super.key,
+  const TodoList({
+    super.key,
     required this.taskName,
     required this.taskCompleted,
     required this.onChanged,
@@ -59,7 +60,9 @@ class TodoList extends StatelessWidget {
                     fontStyle: FontStyle.italic,
                     color: Colors.white,
                     fontSize: 18,
-                    decoration: taskCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+                    decoration: taskCompleted
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
                     decorationColor: Colors.white,
                     decorationThickness: 3,
                   ),

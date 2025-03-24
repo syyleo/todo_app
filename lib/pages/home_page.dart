@@ -17,6 +17,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   bool _isTextBoxVisible = false;
   bool _isFabVisible = true;
   int _selectedIndex = 0;
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   List<List<Object>> toDoList = []; // Explicitly defining the type
 
   @override
@@ -44,6 +45,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (_controller.text.isNotEmpty) {
       setState(() {
         toDoList.add([_controller.text, false]);
+        _listKey.currentState?.insertItem(toDoList.length - 1);
         _controller.clear();
         _isTextBoxVisible = false;
         _isFabVisible = true;
@@ -54,7 +56,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   void deleteTask(int index) {
     setState(() {
-      toDoList.removeAt(index);
+      final removedItem = toDoList.removeAt(index);
+      _listKey.currentState?.removeItem(index, (context, animation) {
+        return SizeTransition(
+          sizeFactor: animation,
+          child: TodoList(
+            taskName: removedItem[0] as String,
+            taskCompleted: removedItem[1] as bool,
+            onChanged: null,
+            deleteFunction: null,
+          ),
+        );
+      });
       saveAppState();
     });
   }
@@ -86,7 +99,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   Future<void> saveAppState() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> tasks = toDoList.map((task) => '${task[0]},${task[1]}').toList();
+    List<String> tasks =
+        toDoList.map((task) => '${task[0]},${task[1]}').toList();
     await prefs.setStringList('tasks', tasks);
     await prefs.setString('currentText', _controller.text);
     await prefs.setBool('isTextBoxVisible', _isTextBoxVisible);
@@ -123,14 +137,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     List<Widget> widgetOptions = <Widget>[
-      ListView.builder(
-        itemCount: toDoList.length,
-        itemBuilder: (BuildContext context, index) {
-          return TodoList(
-            taskName: toDoList[index][0] as String,
-            taskCompleted: toDoList[index][1] as bool,
-            onChanged: (value) => checkBoxChanged(index),
-            deleteFunction: (context) => deleteTask(index),
+      AnimatedList(
+        key: _listKey,
+        initialItemCount: toDoList.length,
+        itemBuilder: (context, index, animation) {
+          return SizeTransition(
+            sizeFactor: animation,
+            child: TodoList(
+              taskName: toDoList[index][0] as String,
+              taskCompleted: toDoList[index][1] as bool,
+              onChanged: (value) => checkBoxChanged(index),
+              deleteFunction: (context) => deleteTask(index),
+            ),
           );
         },
       ),
@@ -162,21 +180,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           Center(
             child: widgetOptions.elementAt(_selectedIndex),
           ),
-          if (_selectedIndex == 0)
-            Center(
-              child: Image.asset(
-                'assets/images.png',
-                width: 175,
-                height: 175,
-              ),
-            ),
           if (_isTextBoxVisible)
             Positioned(
               bottom: 10,
               left: -15,
               right: -15,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
                 child: Row(
                   children: [
                     Expanded(
@@ -186,13 +197,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         decoration: InputDecoration(
                           hintText: 'Type Here...',
                           filled: true,
-                          fillColor: Colors.deepPurple,
+                          fillColor: const Color.fromARGB(255, 37, 39, 95),
                           enabledBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.deepPurple),
+                            borderSide: const BorderSide(
+                                color: Color.fromARGB(255, 37, 39, 95)),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderSide: const BorderSide(color: Colors.deepPurple),
+                            borderSide: const BorderSide(
+                                color: Color.fromARGB(255, 37, 39, 95)),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -211,7 +224,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
       floatingActionButton: _isFabVisible
           ? FloatingActionButton(
-              backgroundColor: Colors.deepPurple,
+              backgroundColor: const Color.fromARGB(255, 37, 39, 95),
               onPressed: toggleTextBoxVisibility,
               elevation: 6.0,
               shape: const CircleBorder(),
@@ -231,7 +244,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               children: [
                 IconButton(
                   icon: const Icon(Icons.task_alt_rounded),
-                  color: _selectedIndex == 0 ? Colors.deepPurple : Colors.blue,
+                  color: _selectedIndex == 0
+                      ? const Color.fromARGB(255, 37, 39, 95)
+                      : Colors.blue,
                   onPressed: () => _onItemTapped(0),
                   iconSize: 36.0,
                 ),
@@ -243,7 +258,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               children: [
                 IconButton(
                   icon: const Icon(Icons.calendar_month),
-                  color: _selectedIndex == 1 ? Colors.deepPurple : Colors.blue,
+                  color: _selectedIndex == 1
+                      ? const Color.fromARGB(255, 37, 39, 95)
+                      : Colors.blue,
                   onPressed: () => _onItemTapped(1),
                   iconSize: 36.0,
                 ),
